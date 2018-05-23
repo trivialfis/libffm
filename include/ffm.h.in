@@ -5,6 +5,8 @@
 
 namespace ffm {
 
+#cmakedefine01 USEOMP
+
 using namespace std;
 
 typedef float ffm_float;
