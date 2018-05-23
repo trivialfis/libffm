@@ -296,9 +296,9 @@ ffm_model init_model(ffm_int n, ffm_int m, ffm_parameter param)
 }
 
 struct disk_problem_meta {
-    ffm_int n = 0;
-    ffm_int m = 0;
-    ffm_int l = 0;
+    ffm_int n = 0;		// number of features
+    ffm_int m = 0;		// number of fields
+    ffm_int l = 0;		// bumber of data points
     ffm_int num_blocks = 0;
     ffm_long B_pos = 0;
     uint64_t hash1;
@@ -435,12 +435,12 @@ void txt2bin(string txt_path, string bin_path) {
     while(fgets(line.data(), kMaxLineSize, f_txt)) {
         char *y_char = strtok(line.data(), " \t");
 
-        ffm_float y = (atoi(y_char)>0)? 1.0f : -1.0f;
+        ffm_float y = (atoi(y_char)>0)? 1.0f : -1.0f; // target
 
         ffm_float scale = 0;
         for(; ; p++) {
             char *field_char = strtok(nullptr,":");
-            char *idx_char = strtok(nullptr,":");
+            char *idx_char = strtok(nullptr,":"); // feature?
             char *value_char = strtok(nullptr," \t");
             if(field_char == nullptr || *field_char == '\n')
                 break;
@@ -565,13 +565,13 @@ ffm_model ffm_train_on_disk(string tr_path, string va_path, ffm_parameter param)
 
         vector<ffm_int> outer_order(prob.meta.num_blocks);
         iota(outer_order.begin(), outer_order.end(), 0);
-        random_shuffle(outer_order.begin(), outer_order.end());
+        random_shuffle(outer_order.begin(), outer_order.end()); // shuffle the blocks
         for(auto blk : outer_order) {
             ffm_int l = prob.load_block(blk);
 
             vector<ffm_int> inner_order(l);
             iota(inner_order.begin(), inner_order.end(), 0);
-            random_shuffle(inner_order.begin(), inner_order.end());
+            random_shuffle(inner_order.begin(), inner_order.end()); // shuffle row
 
 #if defined USEOMP
 #pragma omp parallel for schedule(static) reduction(+: loss)
@@ -581,7 +581,7 @@ ffm_model ffm_train_on_disk(string tr_path, string va_path, ffm_parameter param)
 
                 ffm_float y = prob.Y[i];
                 
-                ffm_node *begin = &prob.X[prob.P[i]];
+                ffm_node *begin = &prob.X[prob.P[i]]; // P[i]: number of features of 
 
                 ffm_node *end = &prob.X[prob.P[i+1]];
 
