@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.1)
 project(ffm)
 
 option(USEOMP "Enable OpenMP." 1)
+option(USECL "Enable OpenCL" 1)
+
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/include")
 
