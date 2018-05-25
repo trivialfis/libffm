@@ -761,7 +761,7 @@ ffm_model ffm_train_on_disk_cl(string tr_path, string va_path, ffm_parameter par
 
 	  kernel.apply(l);
 	}
-
+      kernel.retrieve();
       return loss[0] / prob.meta.l;
     };
 

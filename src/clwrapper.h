@@ -200,6 +200,12 @@ public:
       {
 	clReleaseMemObject(obj);
       }
+    clReleaseKernel(kernel);
+    retrieve();
+  }
+
+  void retrieve()
+  {
     for (auto& arg_pair : arguments)
       {
 	cl_mem_flags flag = arg_pair.second.flag;
@@ -217,7 +223,6 @@ public:
 		       arg_pair.second.name + " failed.");
     	  }
       }
-    clReleaseKernel(kernel);
   }
 
   void in(std::string name)
