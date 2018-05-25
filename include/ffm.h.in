@@ -7,7 +7,6 @@ namespace ffm {
 
 #cmakedefine01 USEOMP
 
-
 using namespace std;
 
 typedef float ffm_float;
@@ -15,29 +14,32 @@ typedef double ffm_double;
 typedef int ffm_int;
 typedef long long ffm_long;
 
-struct ffm_node {
-    ffm_int f;			// field index
-    ffm_int j;			// feature index
-    ffm_float v;		// value
+struct ffm_node
+{
+  ffm_int f;			// field index
+  ffm_int j;			// feature index
+  ffm_float v;		// value
 };
 
-struct ffm_model {
-    ffm_int n;			// number of features
-    ffm_int m;			// number of fields
-    ffm_int k;			// number of latent factors
-    ffm_float *W = nullptr;
-    ffm_int normalization;
-    ~ffm_model();
+struct ffm_model
+{
+  ffm_int n;			// number of features
+  ffm_int m;			// number of fields
+  ffm_int k;			// number of latent factors
+  ffm_float *W = nullptr;
+  ffm_int normalization;
+  ~ffm_model();
 };
 
 struct ffm_parameter
 {
-    ffm_float eta;	// learning rate
-    ffm_float lambda; // regularization parameter
-    ffm_int nr_iters;
-    ffm_int k;		// number of latent factors
-    ffm_int normalization;
-    ffm_int auto_stop;
+  ffm_float eta;	// learning rate
+  ffm_float lambda; // regularization parameter
+  ffm_int nr_iters;
+  ffm_int k;		// number of latent factors
+  ffm_int normalization;
+  ffm_int auto_stop;
+  ffm_int use_cl;
 };
 
 void ffm_parameter_init(ffm_parameter* param);

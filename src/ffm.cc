@@ -61,6 +61,7 @@ void ffm_parameter_init(ffm_parameter* param)
   param->k = 4;
   param->normalization = 1;
   param->auto_stop = 0;
+  param->use_cl = 1;
 }
 
 namespace {

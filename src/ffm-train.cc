@@ -1,4 +1,4 @@
-#pragma GCC diagnostic ignored "-Wunused-result" 
+#pragma GCC diagnostic ignored "-Wunused-result"
 #include <algorithm>
 #include <cstring>
 #include <iostream>
@@ -29,6 +29,7 @@ string train_help() {
 "-p <path>: set path to the validation set\n"
 "--quiet: quiet mode (no output)\n"
 "--no-norm: disable instance-wise normalization\n"
+"--use-cl: enable opencl.\n"
 "--auto-stop: stop at the iteration that achieves the best validation loss (must be used with -p)\n");
 }
 
@@ -62,58 +63,81 @@ Option parse_option(int argc, char **argv) {
     ffm::ffm_parameter_init(&(opt.param));
 
     ffm_int i = 1;
-    for(; i < argc; i++) {
-        if(args[i].compare("-t") == 0)
-        {
-            if(i == argc-1)
-                throw invalid_argument("need to specify number of iterations after -t");
-            i++;
-            opt.param.nr_iters = atoi(args[i].c_str());
-            if(opt.param.nr_iters <= 0)
-                throw invalid_argument("number of iterations should be greater than zero");
-        } else if(args[i].compare("-k") == 0) {
-            if(i == argc-1)
-                throw invalid_argument("need to specify number of factors after -k");
-            i++;
-            opt.param.k = atoi(args[i].c_str());
-            if(opt.param.k <= 0)
-                throw invalid_argument("number of factors should be greater than zero");
-        } else if(args[i].compare("-r") == 0) {
-            if(i == argc-1)
-                throw invalid_argument("need to specify eta after -r");
-            i++;
-            opt.param.eta = atof(args[i].c_str());
-            if(opt.param.eta <= 0)
-                throw invalid_argument("learning rate should be greater than zero");
-        } else if(args[i].compare("-l") == 0) {
-            if(i == argc-1)
-                throw invalid_argument("need to specify lambda after -l");
-            i++;
-            opt.param.lambda = atof(args[i].c_str());
-            if(opt.param.lambda < 0)
-                throw invalid_argument("regularization cost should not be smaller than zero");
-        } else if(args[i].compare("-s") == 0) {
-            if(i == argc-1)
-                throw invalid_argument("need to specify number of threads after -s");
-            i++;
-            opt.nr_threads = atoi(args[i].c_str());
-            if(opt.nr_threads <= 0)
-                throw invalid_argument("number of threads should be greater than zero");
-        } else if(args[i].compare("-p") == 0) {
-            if(i == argc-1)
-                throw invalid_argument("need to specify path after -p");
-            i++;
-            opt.va_path = args[i];
-        } else if(args[i].compare("--no-norm") == 0) {
-            opt.param.normalization = false;
-        } else if(args[i].compare("--quiet") == 0) {
-            opt.quiet = true;
-        } else if(args[i].compare("--auto-stop") == 0) {
-            opt.param.auto_stop = true;
-        } else {
-            break;
-        }
-    }
+    for(; i < argc; i++)
+      {
+	if(args[i].compare("-t") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify number of iterations after -t");
+	    i++;
+	    opt.param.nr_iters = atoi(args[i].c_str());
+	    if(opt.param.nr_iters <= 0)
+	      throw invalid_argument("number of iterations should be greater than zero");
+	  }
+	else if(args[i].compare("-k") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify number of factors after -k");
+	    i++;
+	    opt.param.k = atoi(args[i].c_str());
+	    if(opt.param.k <= 0)
+	      throw invalid_argument("number of factors should be greater than zero");
+	  }
+	else if(args[i].compare("-r") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify eta after -r");
+	    i++;
+	    opt.param.eta = atof(args[i].c_str());
+	    if(opt.param.eta <= 0)
+	      throw invalid_argument("learning rate should be greater than zero");
+	  }
+	else if(args[i].compare("-l") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify lambda after -l");
+	    i++;
+	    opt.param.lambda = atof(args[i].c_str());
+	    if(opt.param.lambda < 0)
+	      throw invalid_argument("regularization cost should not be smaller than zero");
+	  }
+	else if(args[i].compare("-s") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify number of threads after -s");
+	    i++;
+	    opt.nr_threads = atoi(args[i].c_str());
+	    if(opt.nr_threads <= 0)
+	      throw invalid_argument("number of threads should be greater than zero");
+	  }
+	else if(args[i].compare("-p") == 0)
+	  {
+	    if(i == argc-1)
+	      throw invalid_argument("need to specify path after -p");
+	    i++;
+	    opt.va_path = args[i];
+	  }
+	else if(args[i].compare("--no-norm") == 0)
+	  {
+	    opt.param.normalization = false;
+	  }
+	else if(args[i].compare("--quiet") == 0)
+	  {
+	    opt.quiet = true;
+	  }
+	else if(args[i].compare("--auto-stop") == 0)
+	  {
+	    opt.param.auto_stop = true;
+	  }
+	else if(args[i].compare("--use-cl") == 0)
+	  {
+	    opt.param.use_cl = 1;
+	  }
+	else
+	  {
+	    break;
+	  }
+      }
 
     if(i != argc-2 && i != argc-1)
         throw invalid_argument("cannot parse command\n");
@@ -140,7 +164,11 @@ int train_on_disk(Option opt) {
     if(!opt.va_path.empty())
         ffm_read_problem_to_disk(opt.va_path, va_bin_path);
 
-    ffm_model model = ffm_train_on_disk_cl(tr_bin_path, va_bin_path, opt.param);
+    ffm_model model;
+    if (opt.param.use_cl)
+      model = ffm_train_on_disk_cl(tr_bin_path, va_bin_path, opt.param);
+    else
+      model = ffm_train_on_disk(tr_bin_path, va_bin_path, opt.param);
 
     ffm_save_model(model, opt.model_path);
 

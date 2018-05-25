@@ -25,6 +25,7 @@ typedef struct ffm_parameter
   int k;
   int normalization;
   int auto_stop;
+  int use_cl;
 
 } ffm_parameter;
 
