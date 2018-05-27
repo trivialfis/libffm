@@ -1,0 +1,23 @@
+This is an experimental OpenCL port of libffm. I use it to learn OpenCL
+programming and Field-aware factorization machine. I tried it with POCL and
+CUDA toolkit.
+
+* Performance
+The performance regarding to time and accuracy is not as good as the original
+implementation. For the longer training time, this is possibly caused by heavy
+use of global memory and those extra memory copying between host and device.
+For training accuracy, by default, libffm use /Hogwild[0]/ algorithm to
+implement lock free SG.  Hogwild assumes sparsity so that async write won't
+collapse the model. But using GPU to parallelize computing would create
+thousands of threads, input data might not be sparse enough. Besides, the
+original implementation use specified memory alignment for SSE optimization and
+pointer arithmetic to index memory to achieve maximized performance on CPU,
+porting without rewriting is quite hard to me.
+
+* Possible improvements
+  + Use local memory.
+  + Use mapped memory.
+  + Add some useful tests (I would make complete tests when I extract the
+  OpenCL wrapper as standalone library).
+
+[0]: Hogwild!: A lock-free approach to parallelizing stochastic gradient descent, Feng Niu and Benjamin Recht and Stephen
