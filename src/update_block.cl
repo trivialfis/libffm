@@ -109,9 +109,9 @@ wTx(__global struct ffm_node* X, size_t begin, size_t end, size_t x_size,
 
 __kernel void
 update_block(__global struct ffm_node *x, int x_size,
-	     __global float *Y, int y_size,
-	     __global long *nnzs, int nnz_size,
-	     __global float *scales, int scales_size,
+	     __global float *Y,
+	     __global long *nnzs,
+	     __global float *scales,
 
 	     __global float *weight, int feature, int fields, int latents,
 
@@ -120,26 +120,25 @@ update_block(__global struct ffm_node *x, int x_size,
 	     __global float *loss)
 {
   int gid = get_global_id(0);
-  int i = gid;
 
-  float y = Y[i];
+  float y = Y[gid];
 
-  if (nnzs[i] >= x_size)
-    printf("nnzs[i]: %lu\n", nnzs[i]);
+  if (nnzs[gid] >= x_size)
+    printf("nnzs[i]: %lu\n", nnzs[gid]);
 
   size_t begin_index = nnzs[gid];
-  size_t end_index = nnzs[i+1];
+  size_t end_index = nnzs[gid+1];
 
-  float scale = param.normalization? scales[i] : 1;
+  float scale = param.normalization? scales[gid] : 1;
 
   double t = wTx(x, begin_index, end_index, x_size,
   		 weight, feature, fields, latents,
   		 0, 0, scale, 0, 0);
 
-  double expnyt = exp(-y*t);
+  double expnyt = exp(-y * t);
 
-  loss[0] += log1p(expnyt);
-  /* printf("loss: %f\n", loss[0]); */
+  loss[gid] += log1p(expnyt);
+
   if(do_update)
     {
 

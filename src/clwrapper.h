@@ -201,7 +201,6 @@ public:
 	clReleaseMemObject(obj);
       }
     clReleaseKernel(kernel);
-    retrieve();
   }
 
   void retrieve()
@@ -223,6 +222,23 @@ public:
 		       arg_pair.second.name + " failed.");
     	  }
       }
+  }
+  void retrieve(std::string name)
+  {
+    if (arguments.find(name) == arguments.end())
+      {
+	throw std::runtime_error(name + " not found.\n");
+      }
+    arg_properties arg = arguments[name];
+    size_t index = arg.index;
+
+    size_t size = arg.size;
+    void* ptr = arg.ptr;
+
+    cl_err = clEnqueueReadBuffer(command_queue, mem_objects[index],
+				 CL_FALSE, 0, size, ptr, 0, NULL, NULL);
+    check_code(cl_err, "Reading arg: " +
+	       std::to_string(arg.arg_count) + ": " + arg.name + " failed.");
   }
 
   void in(std::string name)

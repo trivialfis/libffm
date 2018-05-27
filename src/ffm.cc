@@ -661,6 +661,16 @@ ffm_model ffm_train_on_disk(string tr_path, string va_path, ffm_parameter param)
   return model;
 }
 
+ffm_double reduce(ffm_float *loss, size_t size)
+{
+  ffm_double result = 0;
+  for (size_t i = 0; i < size; ++i)
+    {
+      result += loss[i];
+    }
+  return result;
+}
+
 ffm_model ffm_train_on_disk_cl(string tr_path, string va_path, ffm_parameter param)
 {
   cout << "Use OpenCL" << endl;
@@ -702,11 +712,8 @@ ffm_model ffm_train_on_disk_cl(string tr_path, string va_path, ffm_parameter par
   kernel.in("x");
   kernel.in("x_size");
   kernel.in("y");
-  kernel.in("y_size");
   kernel.in("nnzs");
-  kernel.in("nnzs_size");
   kernel.in("scales");
-  kernel.in("scales_size");
 
   kernel.inout("W");
 
@@ -722,34 +729,29 @@ ffm_model ffm_train_on_disk_cl(string tr_path, string va_path, ffm_parameter par
   auto one_epoch =
     [&] (problem_on_disk &prob, int do_update)
     {
-      ffm_float loss[1] {0};
-
       vector<ffm_int> outer_order(prob.meta.num_blocks);
       iota(outer_order.begin(), outer_order.end(), 0);
       random_shuffle(outer_order.begin(), outer_order.end()); // shuffle the blocks
+      ffm_double reduced_loss = 0;
 
       kernel.set("W", model.W, w_size);
 
       for(auto blk : outer_order)
 	{
 	  ffm_int l = prob.load_block(blk);
-	  // std::cout << "l: " << std::endl;
+
 	  if (prob.X.size() == 0)
 	    {
 	      continue;
 	    }
+	  ffm_float *loss = (ffm_float*) calloc (l, sizeof(ffm_float));
 
 	  kernel.set("x", prob.X);
 	  kernel.set("x_size", (int)prob.X.size());
 
 	  kernel.set("y", prob.Y);
-	  kernel.set("y_size", (int)prob.Y.size());
-
 	  kernel.set("nnzs", prob.P);
-	  kernel.set("nnzs_size", (int)prob.P.size());
-
 	  kernel.set("scales", prob.R);
-	  kernel.set("scales_size", (int)prob.R.size());
 
 	  kernel.set("features", model.n);
 	  kernel.set("fields", model.m);
@@ -757,12 +759,18 @@ ffm_model ffm_train_on_disk_cl(string tr_path, string va_path, ffm_parameter par
 	  kernel.set("param", param);
 	  kernel.set("l", l);
 	  kernel.set("do_update", do_update);
-	  kernel.set("loss", loss, 1);
+	  kernel.set("loss", loss, l);
 
 	  kernel.apply(l);
+	  kernel.retrieve("loss");
+
+	  reduced_loss += reduce(loss, l);
+	  free(loss);
 	}
-      kernel.retrieve();
-      return loss[0] / prob.meta.l;
+
+      kernel.retrieve("W");
+
+      return reduced_loss / prob.meta.l;
     };
 
   for(ffm_int iter = 1; iter <= param.nr_iters; iter++)
